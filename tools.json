@@ -1,11 +1,26 @@
 {
   "tools": [
     {
+      "slug": "liverpool-sky",
+      "name": "Liverpool Sky",
+      "description": "Live sun and moon data for Liverpool: sunrise, sunset, solar noon, peak altitude, max UV index, moon phase, moonrise and moonset.",
+      "icon": "🌗",
+      "tags": [
+        "astronomy",
+        "liverpool",
+        "weather"
+      ],
+      "added": "2026-09-05"
+    },
+    {
       "slug": "epoch",
       "name": "Epoch Converter",
       "description": "Convert Unix timestamps to human-readable dates and back. Shows the current time live.",
       "icon": "⏱️",
-      "tags": ["time", "dev"],
+      "tags": [
+        "time",
+        "dev"
+      ],
       "added": "2026-09-05"
     }
   ]
