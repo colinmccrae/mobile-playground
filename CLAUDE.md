@@ -188,5 +188,6 @@ Only touch `index.html` for changes to the landing page itself.
 | New tool not on the landing page | Entry missing from `tools.json`, or the browser cached the old file; Pages caches for ~10 min. |
 | Tool page has no styling | Wrong relative path; must be `../../assets/style.css` from `tools/<slug>/`. |
 | `tools/_template` visible on the live site | Harmless; `.nojekyll` is required so the underscore directory is *served*, but it is never linked. |
+| Site moved to a custom domain | `404.html` uses absolute `/mobile-playground/` paths (Pages serves it from any depth); change them to `/`. Everything else is relative. |
 | Push to `main` rejected | Another session pushed first. Fetch, merge, retry. |
 | `curl` of the live site fails with 403 / CONNECT error | Sandbox egress blocks `github.io`. Not a deployment failure. |
