@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Small single-page web tools, built on the go with Claude Code.">
+  <meta name="theme-color" content="#2563eb">
+  <title>Mobile Playground</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧰</text></svg>">
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    .search-wrap { position: sticky; top: 0; z-index: 1; background: var(--bg); padding: 4px 0 12px; }
+    .search-wrap input { background: var(--surface); }
+    .empty { text-align: center; color: var(--muted); padding: 40px 12px; }
+    .empty code { display: block; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <header class="site-header">
+      <h1>🧰 Mobile Playground</h1>
+      <p>Small, single-purpose web tools. Built on the go with Claude Code.</p>
+    </header>
+
+    <div class="search-wrap">
+      <label for="search" class="visually-hidden">Filter tools</label>
+      <input id="search" type="search" placeholder="Filter tools…" autocomplete="off" hidden>
+    </div>
+
+    <main>
+      <div id="tools" class="grid" aria-live="polite"></div>
+      <p id="status" class="empty">Loading tools…</p>
+      <noscript><p class="empty">JavaScript is required to list the tools. The registry is in <a href="tools.json">tools.json</a>.</p></noscript>
+    </main>
+
+    <footer class="site-footer">
+      <span id="count"></span>
+      <a href="https://github.com/colinmccrae/mobile-playground">Source on GitHub</a>
+    </footer>
+
+  </div>
+
+  <script>
+    (async function () {
+      const grid   = document.getElementById('tools');
+      const status = document.getElementById('status');
+      const count  = document.getElementById('count');
+      const search = document.getElementById('search');
+
+      let tools = [];
+      try {
+        const res = await fetch('tools.json', { cache: 'no-cache' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        tools = (await res.json()).tools || [];
+      } catch (err) {
+        status.innerHTML = 'Could not load <code>tools.json</code>: ' + err.message;
+        status.classList.add('error');
+        return;
+      }
+
+      // Newest first.
+      tools.sort((a, b) => (b.added || '').localeCompare(a.added || ''));
+
+      function render(filter) {
+        const q = (filter || '').trim().toLowerCase();
+        const shown = tools.filter(t => !q ||
+          [t.name, t.description, ...(t.tags || [])].join(' ').toLowerCase().includes(q));
+
+        grid.innerHTML = shown.map(t => `
+          <a class="card" href="tools/${encodeURIComponent(t.slug)}/">
+            <p class="card-title"><span class="card-icon" aria-hidden="true">${t.icon || '🔧'}</span>${esc(t.name)}</p>
+            <p class="card-desc">${esc(t.description || '')}</p>
+            ${(t.tags && t.tags.length) ? `<p class="card-meta">${t.tags.map(x => `<span class="tag">${esc(x)}</span>`).join('')}</p>` : ''}
+          </a>`).join('');
+
+        if (tools.length === 0) {
+          status.innerHTML = 'No tools yet. Ask Claude Code to build one.<code>tools/&lt;slug&gt;/index.html + tools.json</code>';
+          status.hidden = false;
+        } else if (shown.length === 0) {
+          status.textContent = 'No tools match “' + filter + '”.';
+          status.hidden = false;
+        } else {
+          status.hidden = true;
+        }
+        count.textContent = tools.length + (tools.length === 1 ? ' tool · ' : ' tools · ');
+      }
+
+      function esc(s) {
+        return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      }
+
+      if (tools.length > 3) {
+        search.hidden = false;
+        search.addEventListener('input', () => render(search.value));
+      }
+      render('');
+    })();
+  </script>
+</body>
+</html>

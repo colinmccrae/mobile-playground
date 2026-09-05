@@ -1,0 +1,12 @@
+{
+  "tools": [
+    {
+      "slug": "epoch",
+      "name": "Epoch Converter",
+      "description": "Convert Unix timestamps to human-readable dates and back. Shows the current time live.",
+      "icon": "⏱️",
+      "tags": ["time", "dev"],
+      "added": "2026-09-05"
+    }
+  ]
+}

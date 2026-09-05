@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="TOOL_DESCRIPTION">
+  <title>TOOL_NAME · Mobile Playground</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>TOOL_ICON</text></svg>">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <style>
+    /* Tool-specific styles go here. Prefer the shared classes from assets/style.css. */
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <a class="back-link" href="../../">← All tools</a>
+
+    <header class="site-header">
+      <h1>TOOL_ICON TOOL_NAME</h1>
+      <p>TOOL_DESCRIPTION</p>
+    </header>
+
+    <main>
+      <!-- Tool UI goes here. Keep it to one screen on a phone where possible. -->
+
+      <label for="input">Input</label>
+      <input id="input" type="text" placeholder="Type something…" autocomplete="off">
+
+      <div class="row" style="margin-top:12px">
+        <button id="go" type="button">Run</button>
+        <button id="clear" type="button" class="btn-secondary">Clear</button>
+      </div>
+
+      <div id="output" class="result hidden" aria-live="polite"></div>
+    </main>
+
+    <footer class="site-footer">
+      <a href="../../">Mobile Playground</a> ·
+      <a href="https://github.com/colinmccrae/mobile-playground/tree/main/tools/TOOL_SLUG">Source</a>
+    </footer>
+
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+      const $ = id => document.getElementById(id);
+      const input = $('input'), output = $('output');
+
+      function run() {
+        const value = input.value.trim();
+        if (!value) { output.classList.add('hidden'); return; }
+        output.textContent = value; // replace with real logic
+        output.classList.remove('hidden');
+      }
+
+      $('go').addEventListener('click', run);
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
+      $('clear').addEventListener('click', () => { input.value = ''; run(); input.focus(); });
+
+      // Optional: remember state between visits.
+      // try { localStorage.setItem('TOOL_SLUG:input', input.value); } catch (_) {}
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Convert Unix timestamps to human-readable dates and back.">
+  <title>Epoch Converter · Mobile Playground</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏱️</text></svg>">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <style>
+    .now { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; }
+    .now .big { font-size: 1.6rem; font-weight: 700; font-family: var(--mono); }
+    dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; }
+    dt { color: var(--muted); }
+    dd { margin: 0; font-family: var(--mono); word-break: break-all; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <a class="back-link" href="../../">← All tools</a>
+
+    <header class="site-header">
+      <h1>⏱️ Epoch Converter</h1>
+      <p>Unix timestamp ⇄ human-readable date. Seconds or milliseconds are detected automatically.</p>
+    </header>
+
+    <main>
+      <section class="result now" aria-live="off">
+        <span class="muted">Now</span>
+        <span class="big" id="now-s">—</span>
+        <button type="button" class="btn-secondary" id="copy-now" style="flex:0 0 auto">Copy</button>
+      </section>
+
+      <label for="ts">Timestamp → date</label>
+      <div class="row">
+        <input id="ts" type="text" inputmode="numeric" placeholder="e.g. 1700000000" autocomplete="off">
+        <button type="button" id="use-now" class="btn-secondary" style="flex:0 0 auto">Use now</button>
+      </div>
+      <div id="ts-out" class="result hidden" aria-live="polite"></div>
+
+      <label for="dt">Date → timestamp</label>
+      <input id="dt" type="datetime-local" step="1">
+      <p class="small muted" style="margin:6px 0 0">Interpreted in your local time zone (<span id="tz"></span>).</p>
+      <div id="dt-out" class="result hidden" aria-live="polite"></div>
+    </main>
+
+    <footer class="site-footer">
+      <a href="../../">Mobile Playground</a> ·
+      <a href="https://github.com/colinmccrae/mobile-playground/tree/main/tools/epoch">Source</a>
+    </footer>
+
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+      const $ = id => document.getElementById(id);
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'local';
+      $('tz').textContent = tz;
+
+      // --- live clock ---------------------------------------------------
+      function tick() { $('now-s').textContent = Math.floor(Date.now() / 1000); }
+      tick(); setInterval(tick, 1000);
+      $('copy-now').addEventListener('click', () => copy($('now-s').textContent, $('copy-now')));
+
+      // --- timestamp -> date ---------------------------------------------
+      function parseTimestamp(raw) {
+        const s = raw.trim().replace(/[_,\s]/g, '');
+        if (!/^-?\d+(\.\d+)?$/.test(s)) return null;
+        let n = Number(s);
+        let unit = 'seconds';
+        if (Math.abs(n) >= 1e17) { n = n / 1e6; unit = 'nanoseconds'; }       // ns
+        else if (Math.abs(n) >= 1e14) { n = n / 1e3; unit = 'microseconds'; }  // µs
+        else if (Math.abs(n) >= 1e11) { unit = 'milliseconds'; }              // ms
+        else { n = n * 1000; }
+        const d = new Date(n);
+        return isNaN(d.getTime()) ? null : { date: d, unit };
+      }
+
+      function describe(d) {
+        const rel = relative(d);
+        return `
+          <dl>
+            <dt>Local</dt><dd>${esc(d.toLocaleString(undefined, { dateStyle: 'full', timeStyle: 'long' }))}</dd>
+            <dt>UTC</dt><dd>${esc(d.toUTCString())}</dd>
+            <dt>ISO 8601</dt><dd>${esc(d.toISOString())}</dd>
+            <dt>Seconds</dt><dd>${Math.floor(d.getTime() / 1000)}</dd>
+            <dt>Millis</dt><dd>${d.getTime()}</dd>
+            <dt>Relative</dt><dd>${esc(rel)}</dd>
+          </dl>`;
+      }
+
+      function relative(d) {
+        const diff = (d.getTime() - Date.now()) / 1000;
+        const abs = Math.abs(diff);
+        const units = [['year', 31536000], ['month', 2592000], ['day', 86400], ['hour', 3600], ['minute', 60], ['second', 1]];
+        for (const [name, secs] of units) {
+          if (abs >= secs || name === 'second') {
+            const v = Math.round(abs / secs);
+            return `${v} ${name}${v === 1 ? '' : 's'} ${diff < 0 ? 'ago' : 'from now'}`;
+          }
+        }
+      }
+
+      const ts = $('ts'), tsOut = $('ts-out');
+      function convertTs() {
+        const raw = ts.value;
+        if (!raw.trim()) { tsOut.classList.add('hidden'); return; }
+        const r = parseTimestamp(raw);
+        tsOut.classList.remove('hidden');
+        if (!r) { tsOut.innerHTML = '<span class="error">Not a valid timestamp.</span>'; return; }
+        tsOut.innerHTML = `<p class="small muted" style="margin:0 0 8px">Detected ${r.unit}</p>` + describe(r.date);
+      }
+      ts.addEventListener('input', convertTs);
+      $('use-now').addEventListener('click', () => { ts.value = Math.floor(Date.now() / 1000); convertTs(); });
+
+      // --- date -> timestamp ---------------------------------------------
+      const dt = $('dt'), dtOut = $('dt-out');
+      function convertDt() {
+        if (!dt.value) { dtOut.classList.add('hidden'); return; }
+        const d = new Date(dt.value); // datetime-local is parsed as local time
+        dtOut.classList.remove('hidden');
+        if (isNaN(d.getTime())) { dtOut.innerHTML = '<span class="error">Invalid date.</span>'; return; }
+        dtOut.innerHTML = describe(d);
+      }
+      dt.addEventListener('input', convertDt);
+      dt.addEventListener('change', convertDt);
+
+      // Prefill the date picker with now (local, to the second).
+      const n = new Date(); n.setMilliseconds(0);
+      const local = new Date(n.getTime() - n.getTimezoneOffset() * 60000).toISOString().slice(0, 19);
+      dt.value = local;
+
+      // --- helpers --------------------------------------------------------
+      function copy(text, btn) {
+        if (!navigator.clipboard) return;
+        navigator.clipboard.writeText(text).then(() => {
+          const old = btn.textContent; btn.textContent = 'Copied';
+          setTimeout(() => (btn.textContent = old), 1200);
+        }).catch(() => {});
+      }
+      function esc(s) {
+        return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      }
+    })();
+  </script>
+</body>
+</html>

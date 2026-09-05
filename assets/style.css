@@ -1,0 +1,181 @@
+/* Mobile Playground — shared stylesheet
+   Loaded by the landing page and every tool page (../../assets/style.css).
+   Mobile-first. Light/dark follows the OS. Keep it dependency-free. */
+
+:root {
+  color-scheme: light dark;
+
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef0f4;
+  --text: #16181d;
+  --muted: #5f6572;
+  --border: #d9dde5;
+  --accent: #2563eb;
+  --accent-contrast: #ffffff;
+  --danger: #dc2626;
+  --ok: #16a34a;
+
+  --radius: 12px;
+  --gap: 12px;
+  --maxw: 760px;
+  --tap: 44px;                    /* minimum touch target */
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1115;
+    --surface: #181b21;
+    --surface-2: #22262e;
+    --text: #e8eaef;
+    --muted: #9aa1ad;
+    --border: #2e333d;
+    --accent: #60a5fa;
+    --accent-contrast: #0b1220;
+    --danger: #f87171;
+    --ok: #4ade80;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 16px;               /* 16px+ stops iOS zooming into inputs */
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+           env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.container {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* ---- Header / footer ------------------------------------------------- */
+
+.site-header { padding: 8px 0 16px; }
+.site-header h1 { margin: 0 0 4px; font-size: 1.6rem; line-height: 1.2; }
+.site-header p  { margin: 0; color: var(--muted); }
+
+.back-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: var(--tap); color: var(--muted); text-decoration: none;
+}
+.back-link:hover, .back-link:focus-visible { color: var(--accent); }
+
+.site-footer {
+  margin-top: 32px; padding-top: 16px;
+  border-top: 1px solid var(--border);
+  color: var(--muted); font-size: 0.875rem;
+}
+.site-footer a { color: inherit; }
+
+/* ---- Typography ------------------------------------------------------ */
+
+h1, h2, h3 { line-height: 1.25; }
+h2 { font-size: 1.2rem; margin: 24px 0 8px; }
+a  { color: var(--accent); }
+code, pre, .mono { font-family: var(--mono); font-size: 0.9375em; }
+pre {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px; overflow-x: auto;
+}
+.muted { color: var(--muted); }
+.small { font-size: 0.875rem; }
+
+/* ---- Cards / grid ---------------------------------------------------- */
+
+.grid {
+  display: grid; gap: var(--gap);
+  grid-template-columns: 1fr;
+}
+@media (min-width: 560px) {
+  .grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.card {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  color: inherit; text-decoration: none;
+}
+a.card:hover, a.card:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+.card-title {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 600; font-size: 1.05rem; margin: 0 0 4px;
+}
+.card-icon { font-size: 1.4rem; line-height: 1; }
+.card-desc { margin: 0; color: var(--muted); }
+.card-meta { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
+
+.tag {
+  display: inline-block; font-size: 0.75rem; padding: 2px 8px;
+  border-radius: 999px; background: var(--surface-2); color: var(--muted);
+}
+
+/* ---- Forms / controls ------------------------------------------------ */
+
+label { display: block; font-weight: 600; margin: 12px 0 4px; }
+
+input, select, textarea, button {
+  font: inherit; color: inherit;
+}
+input[type="text"], input[type="search"], input[type="number"],
+input[type="url"], input[type="email"], input[type="datetime-local"],
+select, textarea {
+  width: 100%; min-height: var(--tap);
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+input:focus-visible, select:focus-visible, textarea:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+textarea { min-height: 120px; resize: vertical; }
+
+button, .btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: var(--tap); padding: 10px 16px;
+  background: var(--accent); color: var(--accent-contrast);
+  border: 0; border-radius: var(--radius);
+  cursor: pointer; text-decoration: none; font-weight: 600;
+  -webkit-tap-highlight-color: transparent;
+}
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-secondary {
+  background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--border);
+}
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.row > * { flex: 1 1 auto; }
+
+/* ---- Utilities ------------------------------------------------------- */
+
+.result {
+  margin-top: 12px; padding: 12px 14px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); word-break: break-word;
+}
+.error { color: var(--danger); }
+.ok    { color: var(--ok); }
+.hidden { display: none !important; }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
