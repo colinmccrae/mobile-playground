@@ -27,6 +27,8 @@ tools/<slug>/index.html One directory per tool. Everything the tool needs lives 
 tools/_template/        Starting point for a new tool. Never listed in tools.json.
 scripts/validate.py     Checks tools.json <-> tools/ are consistent. Run before every push.
 scripts/preview.sh      Screenshots pages at phone + desktop size with Playwright, reports console errors.
+                        `--live` runs the same checks against the published site.
+scripts/check-live.sh   Polls the live site until it serves exactly what is committed. Run after every push.
 CLAUDE.md               This file.
 README.md               Human-facing overview.
 ```
@@ -71,9 +73,13 @@ Follow these steps in order. All of them, every time.
 6. **Commit.** `git add -A && git commit -m "Add <Tool Name> tool"`. One tool per commit.
 7. **Deploy = push to `main`.** See the next section. The task is not finished until
    `origin/main` contains the commit.
-8. **Report.** Tell the user the live URL of the tool
-   (`https://colinmccrae.github.io/mobile-playground/tools/<slug>/`), note that Pages
-   takes a minute or two to publish, and mention anything you could not verify.
+8. **Confirm it is live.** `scripts/check-live.sh <slug>` polls the published site until it
+   serves the committed files (usually 1–2 minutes). Then `scripts/preview.sh --live <slug>`
+   loads the live page in Chromium and fails on console errors or failed requests. Do not
+   report success until `check-live.sh` prints `LIVE`.
+9. **Report.** Give the user the live URL of the tool
+   (`https://colinmccrae.github.io/mobile-playground/tools/<slug>/`) and say that it was
+   verified live. Mention anything you could not verify.
 
 For an **edit** to an existing tool the steps are the same minus scaffolding/registering.
 If the tool's name or description changes, update `tools.json` too.
@@ -103,11 +109,18 @@ Notes:
 
 ### Verifying the deployment
 
-- GitHub runs a "pages build and deployment" workflow on every push to `main`. If GitHub
-  MCP tools are available, `actions_list` / `actions_get` on this repo shows its status.
-- The sandbox's network policy usually **blocks** `colinmccrae.github.io`, so `curl` of the
-  live URL will fail with a proxy error. That is not a deployment failure. Say that you
-  could not fetch the live site and give the user the URL to open.
+- The cloud environment has **unrestricted outbound network access** (confirmed
+  2026-09-05), so the live site can be fetched directly. `scripts/check-live.sh [slug]`
+  compares the live `index.html`, `tools.json` and the tool page byte-for-byte with the
+  working tree, retrying for up to 4 minutes, and adds a cache-busting query so the Pages
+  CDN cannot serve a stale copy.
+- GitHub runs a "pages build and deployment" workflow on every push to `main`. If
+  `check-live.sh` times out, inspect that run: with GitHub MCP tools, `actions_list` on this
+  repo shows its status; otherwise give the user the link
+  <https://github.com/colinmccrae/mobile-playground/actions>.
+- A browser can still show the previous version for up to 10 minutes after
+  `check-live.sh` passes (Pages sends `Cache-Control: max-age=600`). Tell the user to hard
+  refresh if they see stale content.
 
 ## Design rules for tools
 
@@ -116,7 +129,8 @@ Every tool must be usable one-handed on a phone and comfortable on a desktop.
 - **Static only.** Plain HTML + CSS + vanilla JS. No frameworks, no bundlers, no npm
   dependencies, no build step, no server side. If a tool truly needs a library, load a
   pinned version from `https://cdnjs.cloudflare.com` or `https://cdn.jsdelivr.net/npm/`
-  with a `<script>` tag and say so in the commit message. Prefer none.
+  with a `<script>` tag and say so in the commit message. Prefer none. The sandbox can
+  reach those CDNs, so `scripts/preview.sh` will show a failed request if the URL is wrong.
 - **Self-contained.** A tool lives entirely in `tools/<slug>/` plus the shared stylesheet.
   Do not reach into other tools' folders.
 - **Use the shared stylesheet.** `<link rel="stylesheet" href="../../assets/style.css">`.
@@ -168,6 +182,12 @@ Only touch `index.html` for changes to the landing page itself.
   with its Chromium. The cloud environment has these preinstalled
   (`/opt/pw-browsers`, `npm root -g` contains `playwright`). Do **not** run
   `playwright install`. PNGs go to `$PREVIEW_DIR` (default `/tmp/mp-preview`).
+- `scripts/preview.sh --live [slug ...]` does the same on what the published site serves.
+  It mirrors the live files with `curl` and runs Chromium against the mirror, because
+  **Chromium cannot make HTTPS connections through the sandbox proxy** (the egress proxy
+  drops its TLS handshake; `curl`, `git` and Node work). Never work around that with
+  `--ignore-certificate-errors` or by disabling TLS verification.
+- `scripts/check-live.sh [slug]` needs only `curl` and `python3`.
 - `python3 scripts/validate.py` has no dependencies.
 - There is intentionally **no** `package.json`, lockfile, or CI build. Do not add one
   without being asked.
@@ -190,4 +210,6 @@ Only touch `index.html` for changes to the landing page itself.
 | `tools/_template` visible on the live site | Harmless; `.nojekyll` is required so the underscore directory is *served*, but it is never linked. |
 | Site moved to a custom domain | `404.html` uses absolute `/mobile-playground/` paths (Pages serves it from any depth); change them to `/`. Everything else is relative. |
 | Push to `main` rejected | Another session pushed first. Fetch, merge, retry. |
-| `curl` of the live site fails with 403 / CONNECT error | Sandbox egress blocks `github.io`. Not a deployment failure. |
+| Playwright/Chromium gets `ERR_CONNECTION_RESET` on any https:// URL | Known: the egress proxy drops Chromium's TLS handshake. Fetch with `curl` and test locally (`preview.sh --live` does this). Not fixable client-side. |
+| `check-live.sh` times out | Pages build failed or is queued: check <https://github.com/colinmccrae/mobile-playground/actions>. Also confirm the push actually landed on `main` (`git log origin/main -1`). |
+| `curl` of the live site fails with 403 / CONNECT error | The environment's network policy has been tightened again. Fall back to checking the Pages workflow run and give the user the URL to open. |

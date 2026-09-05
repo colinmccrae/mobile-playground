@@ -25,6 +25,7 @@ To do it by hand:
 2. Add an entry to `tools.json` (see the schema in `CLAUDE.md`).
 3. `python3 scripts/validate.py`
 4. Commit and push to `main`.
+5. `scripts/check-live.sh my-tool` to confirm it is being served.
 
 ## Repository layout
 
@@ -34,7 +35,8 @@ tools.json         registry of tools
 tools/<slug>/      one directory per tool
 tools/_template/   starting point for new tools
 assets/style.css   shared, mobile-first stylesheet with dark mode
-scripts/           validate.py (consistency check), preview.sh (screenshots + console errors)
+scripts/           validate.py (consistency check), preview.sh (screenshots + console errors),
+                   check-live.sh (confirms the published site matches the repo)
 ```
 
 ## Local preview
@@ -42,6 +44,8 @@ scripts/           validate.py (consistency check), preview.sh (screenshots + co
 ```bash
 python3 -m http.server 8000     # then open http://localhost:8000/
 scripts/preview.sh epoch        # screenshots at phone + desktop size (needs Playwright)
+scripts/preview.sh --live epoch # the same checks against the live site
+scripts/check-live.sh epoch     # wait until the live site serves the committed files
 ```
 
 ## Licence
