@@ -7,7 +7,7 @@ Checks:
   * tools.json parses and every entry has the required fields
   * every entry's slug is kebab-case and unique
   * every entry has a matching tools/<slug>/index.html
-  * every tools/<slug>/ directory (except _template) is listed in tools.json
+  * every tools/<slug>/ directory (except _template and redirect stubs) is listed in tools.json
   * every tool page has a viewport meta, links the shared stylesheet, and links back home
 Exit status is non-zero on any failure, so it can gate a push.
 """
@@ -79,6 +79,9 @@ def main() -> int:
     if TOOLS_DIR.is_dir():
         for d in sorted(TOOLS_DIR.iterdir()):
             if d.is_dir() and not d.name.startswith("_") and d.name not in seen:
+                page = d / "index.html"
+                if page.is_file() and 'http-equiv="refresh"' in page.read_text(encoding="utf-8", errors="replace"):
+                    continue  # redirect stub left behind by a rename; not a tool
                 err(f"tools/{d.name}/ exists but is not listed in tools.json")
 
     if errors:

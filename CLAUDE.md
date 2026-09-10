@@ -172,7 +172,9 @@ Only touch `index.html` for changes to the landing page itself.
 
 - Remove: delete `tools/<slug>/`, remove its entry from `tools.json`, validate, push.
 - Rename: `git mv tools/old tools/new`, update `slug` in `tools.json`, fix the "Source"
-  link in the tool's footer, validate, push. Old URLs will 404 (that is acceptable here).
+  link in the tool's footer, validate, push. To keep the old URL working, leave a stub at
+  `tools/old/index.html` containing only a `<meta http-equiv="refresh" content="0; url=../new/">`
+  redirect (see `tools/liverpool-sky/`); the validator ignores such stubs.
 
 ## Local preview & tooling
 

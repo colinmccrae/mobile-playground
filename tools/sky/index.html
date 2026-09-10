@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Live sun and moon data for any city or your current location: sunrise, sunset, solar noon, sun altitude, UV index, moon phase, moonrise and moonset.">
+  <title>Sky Almanac · Mobile Playground</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌗</text></svg>">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <style>
+    .place-bar { display: flex; gap: 8px; align-items: flex-start; margin: 4px 0 6px; }
+    .search-wrap { position: relative; flex: 1 1 auto; min-width: 0; }
+    .search-wrap input { background: var(--surface); }
+    .results { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 5; margin: 0; padding: 4px; list-style: none;
+               background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+               box-shadow: 0 8px 24px rgba(0,0,0,.18); max-height: 60vh; overflow-y: auto; }
+    .results li { margin: 0; }
+    .results button { width: 100%; justify-content: flex-start; text-align: left; background: none; color: var(--text);
+                      font-weight: 500; border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; align-items: flex-start; gap: 0; }
+    .results button:hover, .results button:focus-visible, .results button.active { background: var(--surface-2); }
+    .results .sub { color: var(--muted); font-size: 0.8rem; font-weight: 400; }
+    #locate { flex: 0 0 var(--tap); padding: 0; font-size: 1.2rem; }
+    #locate.busy { opacity: .6; }
+    .place-line { margin: 0 0 12px; color: var(--muted); font-size: 0.875rem; }
+    .place-line strong { color: var(--text); }
+
+    .datebar { display: flex; gap: 8px; align-items: center; margin: 4px 0 12px; }
+    .datebar button { flex: 0 0 var(--tap); padding: 0; }
+    .datebar input[type="date"] { flex: 1 1 auto; text-align: center; min-width: 0; }
+    .datebar .today { flex: 0 0 auto; }
+
+    .card { margin-top: var(--gap); }
+    .card h2 { margin: 0 0 8px; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; }
+    .card h2 .right { margin-left: auto; font-weight: 400; color: var(--muted); font-size: 0.875rem; }
+
+    dl { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; }
+    dt { color: var(--muted); white-space: nowrap; }
+    dd { margin: 0; font-family: var(--mono); text-align: right; }
+    dd .sub { color: var(--muted); font-size: 0.8em; margin-left: 6px; white-space: nowrap; }
+    dd sup { font-size: 0.7em; color: var(--muted); }
+    @media (max-width: 420px) { dd .sub { display: block; margin-left: 0; } }
+    .none { color: var(--muted); }
+
+    .now-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .now-grid .big { font-size: 1.5rem; font-weight: 700; font-family: var(--mono); line-height: 1.2; }
+    .now-grid .label { color: var(--muted); font-size: 0.8rem; }
+    .clock { font-family: var(--mono); font-size: 1.1rem; font-weight: 600; }
+
+    .bar-wrap { margin: 10px 0 2px; }
+    .bar-label { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--muted); }
+    .bar { position: relative; height: 18px; border-radius: 9px; overflow: hidden; border: 1px solid var(--border); background: var(--surface-2); }
+    .bar .seg { position: absolute; top: 0; bottom: 0; }
+    .bar .mark { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--text); transform: translateX(-1px); }
+    .bar .mark.noon { background: var(--muted); width: 1px; opacity: .7; }
+    .moonseg { background: #8ea9d6; }
+    @media (prefers-color-scheme: dark) { .moonseg { background: #5f7fb3; } }
+
+    .phase-emoji { font-size: 2.4rem; line-height: 1; }
+    .uv { display: inline-block; min-width: 2.2em; text-align: center; border-radius: 6px; padding: 0 6px; color: #111; font-weight: 700; }
+    .foot-note { font-size: 0.8rem; color: var(--muted); margin: 6px 0 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <a class="back-link" href="../../">← All tools</a>
+
+    <header class="site-header">
+      <h1>🌗 Sky Almanac</h1>
+      <p>Sun and moon for any major city, or wherever you are. Times are shown in the place's local time.</p>
+    </header>
+
+    <main>
+      <div class="place-bar">
+        <div class="search-wrap">
+          <label for="q" class="visually-hidden">Search for a city</label>
+          <input id="q" type="search" placeholder="Search a city, or “lat, lng”…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="results" aria-expanded="false">
+          <ul id="results" class="results hidden" role="listbox"></ul>
+        </div>
+        <button id="locate" type="button" class="btn-secondary" title="Use my location" aria-label="Use my current location">📍</button>
+      </div>
+      <p class="place-line" id="place-line">—</p>
+      <p class="small error hidden" id="geo-msg" role="alert"></p>
+
+      <div class="datebar">
+        <button type="button" id="prev" class="btn-secondary" aria-label="Previous day">‹</button>
+        <label for="date" class="visually-hidden">Date</label>
+        <input type="date" id="date">
+        <button type="button" id="next" class="btn-secondary" aria-label="Next day">›</button>
+        <button type="button" id="today" class="today">Today</button>
+      </div>
+
+      <section class="card" aria-live="off">
+        <h2>Right now <span class="right clock" id="clock">—</span></h2>
+        <div class="now-grid">
+          <div>
+            <div class="label">Sun altitude</div>
+            <div class="big" id="sun-alt">—</div>
+            <div class="small muted" id="sun-az">—</div>
+          </div>
+          <div>
+            <div class="label">Moon altitude</div>
+            <div class="big" id="moon-alt">—</div>
+            <div class="small muted" id="moon-az">—</div>
+          </div>
+          <div>
+            <div class="label">UV index now <span class="muted">(clear sky)</span></div>
+            <div class="big"><span class="uv" id="uv-now">—</span></div>
+          </div>
+          <div>
+            <div class="label">Moon</div>
+            <div class="big" id="moon-now">—</div>
+            <div class="small muted" id="moon-now-sub">—</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>☀️ Sun <span class="right" id="sun-date"></span></h2>
+        <div class="bar-wrap">
+          <div class="bar" id="sun-bar" aria-hidden="true"></div>
+          <div class="bar-label"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+        </div>
+        <dl id="sun-list"></dl>
+        <p class="foot-note" id="uv-note"></p>
+      </section>
+
+      <section class="card">
+        <h2>🌙 Moon <span class="right" id="moon-date"></span></h2>
+        <div class="row" style="align-items:center; margin-bottom:8px">
+          <span class="phase-emoji" id="phase-emoji" style="flex:0 0 auto" aria-hidden="true">🌑</span>
+          <div style="flex:1 1 auto">
+            <div style="font-weight:600" id="phase-name">—</div>
+            <div class="small muted" id="phase-sub">—</div>
+          </div>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar" id="moon-bar" aria-hidden="true"></div>
+          <div class="bar-label"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+        </div>
+        <dl id="moon-list"></dl>
+      </section>
+
+      <p class="foot-note">Computed in your browser from orbital formulas (Meeus). Sun times are accurate to about a minute, moon times to a few minutes. Rise and set are for a sea-level horizon. UV index is a clear-sky theoretical maximum, not a forecast. Your location never leaves your device.</p>
+    </main>
+
+    <footer class="site-footer">
+      <a href="../../">Mobile Playground</a> ·
+      <a href="https://github.com/colinmccrae/mobile-playground/tree/main/tools/sky">Source</a>
+    </footer>
+
+  </div>
+
+  <script src="cities.js"></script>
+  <script src="astro.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      const $ = id => document.getElementById(id);
+      const A = window.Astro;
+      const DEG = 180 / Math.PI, RAD = Math.PI / 180;
+      const STORE = 'sky:place';
+      const DEVICE_TZ = (Intl.DateTimeFormat().resolvedOptions().timeZone) || 'UTC';
+
+      // ---- Cities ------------------------------------------------------------
+      const norm = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+      const CITIES = (window.CITIES || []).map(c => ({
+        name: c[0], region: c[1], country: c[2], iso2: c[3], lat: c[4], lng: c[5], tz: c[6], pop: c[7],
+        key: norm(c[0]), keyFull: norm(c[0] + ' ' + c[1] + ' ' + c[2] + ' ' + c[3]),
+      }));
+      const cityPlace = c => ({ kind: 'city', name: c.name, sub: [c.region, c.country].filter(Boolean).join(', '),
+                                lat: c.lat, lng: c.lng, tz: c.tz, iso2: c.iso2 });
+
+      function searchCities(q) {
+        q = norm(q.trim());
+        if (!q) return [];
+        const parts = q.split(/[\s,]+/).filter(Boolean);
+        const out = [];
+        for (const c of CITIES) {
+          let score = 0;
+          if (c.key === q) score = 4;
+          else if (c.key.startsWith(q)) score = 3;
+          else if (c.key.includes(q)) score = 2;
+          else if (parts.length > 1 && parts.every(p => c.keyFull.includes(p))) score = 1;
+          if (score) out.push([score, c]);
+        }
+        out.sort((a, b) => b[0] - a[0] || b[1].pop - a[1].pop);
+        return out.slice(0, 8).map(x => x[1]);
+      }
+
+      function nearestCity(lat, lng) {
+        let best = null, bestD = Infinity;
+        for (const c of CITIES) {
+          const d = haversine(lat, lng, c.lat, c.lng);
+          if (d < bestD) { bestD = d; best = c; }
+        }
+        return best ? { city: best, km: bestD } : null;
+      }
+      function haversine(lat1, lon1, lat2, lon2) {
+        const dLat = (lat2 - lat1) * RAD, dLon = (lon2 - lon1) * RAD;
+        const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * RAD) * Math.cos(lat2 * RAD) * Math.sin(dLon / 2) ** 2;
+        return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      }
+      const fmtCoord = (lat, lng) => `${Math.abs(lat).toFixed(2)}°${lat >= 0 ? 'N' : 'S'} ${Math.abs(lng).toFixed(2)}°${lng >= 0 ? 'E' : 'W'}`;
+
+      // ---- Time-zone helpers ----------------------------------------------
+      const partsCache = {};
+      function partsFmt(tz) {
+        return partsCache[tz] || (partsCache[tz] = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hourCycle: 'h23',
+          year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      }
+      function zoneParts(tz, date) {
+        const o = {};
+        for (const p of partsFmt(tz).formatToParts(date)) if (p.type !== 'literal') o[p.type] = Number(p.value);
+        return { y: o.year, m: o.month, d: o.day, h: o.hour % 24, min: o.minute, s: o.second };
+      }
+      function zoneOffsetMs(tz, t) {
+        const p = zoneParts(tz, new Date(t));
+        return Date.UTC(p.y, p.m - 1, p.d, p.h, p.min, p.s) - Math.floor(t / 1000) * 1000;
+      }
+      function zoneMidnight(tz, y, m, d) {
+        const guess = Date.UTC(y, m - 1, d);
+        let t = guess - zoneOffsetMs(tz, guess);
+        t = guess - zoneOffsetMs(tz, t);       // second pass handles DST transition days
+        return new Date(t);
+      }
+      function validTz(tz) { try { new Intl.DateTimeFormat('en', { timeZone: tz }); return true; } catch (_) { return false; } }
+
+      let F = null; // formatters for the current place's zone
+      function makeFormatters(tz) {
+        F = {
+          time: new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }),
+          clock: new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23', timeZoneName: 'short' }),
+          date: new Intl.DateTimeFormat('en-GB', { timeZone: tz, weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }),
+          dateTime: new Intl.DateTimeFormat('en-GB', { timeZone: tz, weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }),
+          tzName: new Intl.DateTimeFormat('en-GB', { timeZone: tz, timeZoneName: 'short' }),
+        };
+      }
+      const tzAbbrev = d => (F.tzName.formatToParts(d).find(p => p.type === 'timeZoneName') || {}).value || '';
+
+      let dayStart = 0, dayEnd = 0;
+      function fmtTime(d) {
+        if (!d) return '<span class="none">—</span>';
+        const t = F.time.format(d);
+        return d >= dayEnd ? `${t}<sup>+1</sup>` : d < dayStart ? `${t}<sup>−1</sup>` : t;
+      }
+      const iso = ({ y, m, d }) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      function fmtDur(ms) {
+        const m = Math.round(ms / 60000), h = Math.floor(m / 60);
+        return `${h}h ${String(m % 60).padStart(2, '0')}m`;
+      }
+      function fmtDelta(ms) {
+        const m = Math.round(ms / 60000), sign = m > 0 ? '+' : m < 0 ? '−' : '±';
+        return `${sign}${Math.abs(m)} min`;
+      }
+      const COMPASS = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+      const compass = azDeg => COMPASS[Math.round(((azDeg % 360) + 360) % 360 / 22.5) % 16];
+      const fmtAz = azRad => { const a = ((azRad * DEG) % 360 + 360) % 360; return `${a.toFixed(0)}° ${compass(a)}`; };
+      const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+      // ---- Moon phase naming ---------------------------------------------
+      const PHASES = [['New Moon','🌑'],['Waxing Crescent','🌒'],['First Quarter','🌓'],['Waxing Gibbous','🌔'],
+                      ['Full Moon','🌕'],['Waning Gibbous','🌖'],['Last Quarter','🌗'],['Waning Crescent','🌘']];
+      function phaseInfo(p) {
+        const tol = 0.0167;
+        if (p < tol || p > 1 - tol) return PHASES[0];
+        if (Math.abs(p - 0.25) < tol) return PHASES[2];
+        if (Math.abs(p - 0.5) < tol) return PHASES[4];
+        if (Math.abs(p - 0.75) < tol) return PHASES[6];
+        if (p < 0.25) return PHASES[1];
+        if (p < 0.5) return PHASES[3];
+        if (p < 0.75) return PHASES[5];
+        return PHASES[7];
+      }
+      const SYNODIC = 29.530588853;
+
+      // ---- UV --------------------------------------------------------------
+      // Crude ozone climatology: ~260 DU at the equator all year; higher and more
+      // seasonal towards the poles, peaking in each hemisphere's spring.
+      function ozoneDU(lat, y, m, d) {
+        const doy = Math.round((Date.UTC(y, m - 1, d) - Date.UTC(y, 0, 1)) / 86400000) + 1;
+        const s2 = Math.sin(lat * RAD) ** 2;
+        const peak = lat >= 0 ? 90 : 273;
+        return 255 + 100 * s2 + 70 * s2 * Math.cos(2 * Math.PI * (doy - peak) / 365);
+      }
+      const uvColour = uv => uv < 3 ? '#4ade80' : uv < 6 ? '#facc15' : uv < 8 ? '#fb923c' : uv < 11 ? '#f87171' : '#c084fc';
+      function setUv(el, uv) { el.textContent = uv.toFixed(1); el.style.background = uvColour(uv); }
+
+      // ---- State -----------------------------------------------------------
+      let place = null;   // { kind, name, sub, lat, lng, tz, iso2? }
+      let view = null;    // civil date shown, in place.tz
+      let day = null;     // computed data for `view`
+      const dateInput = $('date');
+      const pct = (t, start, end) => Math.max(0, Math.min(100, (t - start) / (end - start) * 100));
+
+      function setPlace(p, { persist = true, pushUrl = true } = {}) {
+        if (!validTz(p.tz)) p = { ...p, tz: DEVICE_TZ };
+        place = p;
+        makeFormatters(p.tz);
+        view = zoneParts(p.tz, new Date());
+        if (persist && p.kind === 'city') { try { localStorage.setItem(STORE, JSON.stringify(p)); } catch (_) {} }
+        if (pushUrl) {
+          const u = new URL(location.href); u.search = '';
+          if (p.kind === 'city') { u.searchParams.set('q', p.name); if (p.iso2) u.searchParams.set('cc', p.iso2); }
+          else if (p.kind === 'coords') { u.searchParams.set('lat', p.lat.toFixed(4)); u.searchParams.set('lng', p.lng.toFixed(4)); }
+          history.replaceState(null, '', u.pathname + u.search);
+        }
+        $('geo-msg').classList.add('hidden');
+        render();
+      }
+
+      function render() {
+        const tz = place.tz, LAT = place.lat, LNG = place.lng;
+        const start = zoneMidnight(tz, view.y, view.m, view.d);
+        const next = zoneParts(tz, new Date(start.valueOf() + 36 * 3600000));
+        const end = zoneMidnight(tz, next.y, next.m, next.d);
+        const ref = new Date(start.valueOf() + 12 * 3600000);
+        const prevRef = new Date(ref.valueOf() - 86400000);
+        dayStart = start; dayEnd = end;
+
+        const sun = A.getSunTimes(ref, LAT, LNG);
+        const sunY = A.getSunTimes(prevRef, LAT, LNG);
+        const maxAlt = A.getSunPosition(sun.solarNoon, LAT, LNG).altitude;
+        const minAlt = A.getSunPosition(sun.nadir, LAT, LNG).altitude;
+        const noonAz = A.getSunPosition(sun.solarNoon, LAT, LNG).azimuth;
+        const ozone = ozoneDU(LAT, view.y, view.m, view.d);
+        const uvMax = A.uvIndex(maxAlt, ozone);
+        const dayLength = s => s.sunrise && s.sunset ? s.sunset - s.sunrise
+          : (A.getSunPosition(s.solarNoon, LAT, LNG).altitude * DEG > -0.833 ? 86400000 : 0);
+        const dayLen = dayLength(sun), dayLenY = dayLength(sunY);
+
+        const moonT = A.getMoonTimes(start, LAT, LNG);
+        const ill = A.getMoonIllumination(ref);
+        const [phaseName, phaseEmoji] = phaseInfo(ill.phase);
+        const nextNew = A.nextMoonPhase(start, 0), nextFull = A.nextMoonPhase(start, 0.5);
+        const moonDist = A.getMoonPosition(ref, LAT, LNG).distance;
+
+        day = { start, end, sun };
+        dateInput.value = iso(view);
+        $('sun-date').textContent = F.date.format(ref);
+        $('moon-date').textContent = F.date.format(ref);
+        $('place-line').innerHTML = `<strong>${esc(place.name)}</strong>${place.sub ? ', ' + esc(place.sub) : ''} · ${fmtCoord(LAT, LNG)} · ${esc(tz)} (${esc(tzAbbrev(ref))})`;
+
+        // A null event means the sun never crosses that altitude on this day.
+        const never = angle => maxAlt * DEG > angle ? 'stays above all day' : 'stays below all day';
+        const row = (label, t, angle, sub) => [label, fmtTime(t), t ? (sub || '') : never(angle)];
+        $('sun-list').innerHTML = [
+          row('Astronomical dawn', sun.nightEnd, -18),
+          row('Nautical dawn', sun.nauticalDawn, -12),
+          row('Civil dawn', sun.dawn, -6),
+          ['Sunrise', sun.sunrise ? `<strong>${fmtTime(sun.sunrise)}</strong>` : fmtTime(null), sun.sunrise ? fmtAz(A.getSunPosition(sun.sunrise, LAT, LNG).azimuth) : (maxAlt * DEG > -0.833 ? 'sun up all day' : 'sun down all day')],
+          row('Golden hour ends', sun.goldenHourEnd, 6),
+          ['Solar noon', `<strong>${fmtTime(sun.solarNoon)}</strong>`],
+          ['Peak altitude', `${(maxAlt * DEG).toFixed(1)}°`, 'due ' + compass(noonAz * DEG)],
+          ['Max UV index', `<span class="uv" id="uv-max"></span>`, 'clear sky'],
+          row('Golden hour starts', sun.goldenHour, 6),
+          ['Sunset', sun.sunset ? `<strong>${fmtTime(sun.sunset)}</strong>` : fmtTime(null), sun.sunset ? fmtAz(A.getSunPosition(sun.sunset, LAT, LNG).azimuth) : (maxAlt * DEG > -0.833 ? 'sun up all day' : 'sun down all day')],
+          row('Civil dusk', sun.dusk, -6),
+          row('Nautical dusk', sun.nauticalDusk, -12),
+          row('Astronomical dusk', sun.night, -18),
+          ['Day length', fmtDur(dayLen), fmtDelta(dayLen - dayLenY) + ' vs yesterday'],
+          ['Sun at midnight', `${Math.abs(minAlt * DEG).toFixed(1)}°`, minAlt < 0 ? 'below horizon' : 'above horizon'],
+        ].map(([k, v, sub]) => `<dt>${k}</dt><dd>${v}${sub ? `<span class="sub">${sub}</span>` : ''}</dd>`).join('');
+        setUv($('uv-max'), uvMax);
+        $('uv-note').textContent = `UV estimate assumes clear sky at sea level with ${ozone.toFixed(0)} DU ozone (seasonal average for this latitude). Cloud, haze and altitude change the real value.`;
+
+        // Sun bar: night | astro | nautical | civil | day | civil | nautical | astro | night
+        const noonPct = pct(sun.solarNoon, start, end);
+        const pairs = [[-18, sun.nightEnd, sun.night], [-12, sun.nauticalDawn, sun.nauticalDusk], [-6, sun.dawn, sun.dusk], [-0.833, sun.sunrise, sun.sunset]];
+        const rises = [], sets = [];
+        for (const [angle, r, s] of pairs) {
+          if (r && s) { rises.push(pct(r, start, end)); sets.push(pct(s, start, end)); }
+          else if (maxAlt * DEG > angle) { rises.push(0); sets.push(100); }       // above this altitude all day
+          else { rises.push(noonPct); sets.push(noonPct); }                       // never reaches it
+        }
+        const bounds = rises.concat(sets.reverse());
+        const cols = ['#0b1a33', '#1e3a5f', '#3b5b8a', '#f2a65a', '#ffd66b', '#f2a65a', '#3b5b8a', '#1e3a5f', '#0b1a33'];
+        let html = '', prev = 0;
+        for (let i = 0; i <= bounds.length; i++) {
+          const to = i < bounds.length ? Math.max(prev, bounds[i]) : 100;
+          html += `<div class="seg" style="left:${prev}%;width:${to - prev}%;background:${cols[i]}"></div>`;
+          prev = to;
+        }
+        html += `<div class="mark noon" style="left:${noonPct}%"></div><div class="mark hidden" id="sun-now"></div>`;
+        $('sun-bar').innerHTML = html;
+
+        // Moon
+        $('phase-emoji').textContent = phaseEmoji;
+        $('phase-name').textContent = phaseName;
+        $('phase-sub').textContent = `${(ill.fraction * 100).toFixed(0)}% illuminated · ${(ill.phase * SYNODIC).toFixed(1)} days old`;
+
+        let up = [];
+        if (moonT.alwaysUp) up = [[0, 100]];
+        else if (moonT.rise && moonT.set) up = moonT.rise < moonT.set ? [[pct(moonT.rise, start, end), pct(moonT.set, start, end)]]
+                                                                        : [[0, pct(moonT.set, start, end)], [pct(moonT.rise, start, end), 100]];
+        else if (moonT.rise) up = [[pct(moonT.rise, start, end), 100]];
+        else if (moonT.set) up = [[0, pct(moonT.set, start, end)]];
+        $('moon-bar').innerHTML = up.map(([a, b]) => `<div class="seg moonseg" style="left:${a}%;width:${b - a}%"></div>`).join('')
+          + `<div class="mark hidden" id="moon-now"></div>`;
+
+        const noneNote = moonT.alwaysUp ? 'up all day' : moonT.alwaysDown ? 'down all day' : 'not today';
+        $('moon-list').innerHTML = [
+          ['Moonrise', moonT.rise ? `<strong>${fmtTime(moonT.rise)}</strong>` : fmtTime(null), moonT.rise ? fmtAz(A.getMoonPosition(moonT.rise, LAT, LNG).azimuth) : noneNote],
+          ['Moonset', moonT.set ? `<strong>${fmtTime(moonT.set)}</strong>` : fmtTime(null), moonT.set ? fmtAz(A.getMoonPosition(moonT.set, LAT, LNG).azimuth) : noneNote],
+          ['Distance', `${Math.round(moonDist).toLocaleString('en-GB')} km`, 'at noon'],
+          ['Next new moon', nextNew ? F.dateTime.format(nextNew) : '—'],
+          ['Next full moon', nextFull ? F.dateTime.format(nextFull) : '—'],
+        ].map(([k, v, sub]) => `<dt>${k}</dt><dd>${v}${sub ? `<span class="sub">${sub}</span>` : ''}</dd>`).join('');
+
+        tick();
+      }
+
+      function tick() {
+        if (!place) return;
+        const now = new Date(), LAT = place.lat, LNG = place.lng;
+        $('clock').textContent = F.clock.format(now);
+        const sp = A.getSunPosition(now, LAT, LNG), mp = A.getMoonPosition(now, LAT, LNG);
+        const ill = A.getMoonIllumination(now);
+        $('sun-alt').textContent = `${(sp.altitude * DEG).toFixed(1)}°`;
+        $('sun-az').textContent = `azimuth ${fmtAz(sp.azimuth)} · ${sp.altitude > 0 ? 'above horizon' : 'below horizon'}`;
+        $('moon-alt').textContent = `${(mp.altitude * DEG).toFixed(1)}°`;
+        $('moon-az').textContent = `azimuth ${fmtAz(mp.azimuth)} · ${mp.altitude > 0 ? 'above horizon' : 'below horizon'}`;
+        const p = zoneParts(place.tz, now);
+        setUv($('uv-now'), A.uvIndex(sp.altitude, ozoneDU(LAT, p.y, p.m, p.d)));
+        const [name, emoji] = phaseInfo(ill.phase);
+        $('moon-now').textContent = `${emoji} ${(ill.fraction * 100).toFixed(0)}%`;
+        $('moon-now-sub').textContent = name;
+
+        const isToday = day && now >= day.start && now < day.end;
+        for (const id of ['sun-now', 'moon-now']) {
+          const el = $(id); if (!el) continue;
+          el.classList.toggle('hidden', !isToday);
+          if (isToday) el.style.left = pct(now, day.start, day.end) + '%';
+        }
+      }
+
+      // ---- Search UI ---------------------------------------------------------
+      const q = $('q'), results = $('results');
+      let matches = [], active = -1;
+
+      function coordsFrom(text) {
+        const m = /^\s*(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)\s*$/.exec(text);
+        if (!m) return null;
+        const lat = +m[1], lng = +m[2];
+        return (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) ? { lat, lng } : null;
+      }
+      function coordsPlace(lat, lng) {
+        const near = nearestCity(lat, lng);
+        return { kind: 'coords', name: fmtCoord(lat, lng), lat, lng, tz: DEVICE_TZ,
+                 sub: near ? `${Math.round(near.km)} km from ${near.city.name}, ${near.city.country}` : '' };
+      }
+      function showResults() {
+        const c = coordsFrom(q.value);
+        matches = c ? [{ coords: c }] : searchCities(q.value);
+        active = matches.length ? 0 : -1;
+        results.innerHTML = matches.map((m, i) => m.coords
+          ? `<li role="option"><button type="button" data-i="${i}" class="${i === active ? 'active' : ''}">Coordinates ${fmtCoord(m.coords.lat, m.coords.lng)}<span class="sub">Times in your device's zone (${esc(DEVICE_TZ)})</span></button></li>`
+          : `<li role="option"><button type="button" data-i="${i}" class="${i === active ? 'active' : ''}">${esc(m.name)}<span class="sub">${esc([m.region, m.country].filter(Boolean).join(', '))}</span></button></li>`).join('');
+        const open = matches.length > 0 && q.value.trim().length > 0;
+        results.classList.toggle('hidden', !open);
+        q.setAttribute('aria-expanded', String(open));
+        if (q.value.trim() && !matches.length) {
+          results.innerHTML = '<li><span class="sub" style="display:block;padding:8px 10px">No matching city. Try another spelling, or enter “lat, lng”.</span></li>';
+          results.classList.remove('hidden');
+        }
+      }
+      function choose(i) {
+        const m = matches[i]; if (!m) return;
+        setPlace(m.coords ? coordsPlace(m.coords.lat, m.coords.lng) : cityPlace(m));
+        q.value = ''; results.classList.add('hidden'); q.setAttribute('aria-expanded', 'false'); q.blur();
+      }
+      q.addEventListener('input', showResults);
+      q.addEventListener('focus', () => { if (q.value.trim()) showResults(); });
+      q.addEventListener('keydown', e => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          if (!matches.length) return;
+          e.preventDefault();
+          active = (active + (e.key === 'ArrowDown' ? 1 : -1) + matches.length) % matches.length;
+          results.querySelectorAll('button').forEach((b, i) => b.classList.toggle('active', i === active));
+        } else if (e.key === 'Enter') { e.preventDefault(); if (active >= 0) choose(active); }
+        else if (e.key === 'Escape') { results.classList.add('hidden'); q.setAttribute('aria-expanded', 'false'); }
+      });
+      results.addEventListener('mousedown', e => e.preventDefault()); // keep input focus until click handled
+      results.addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (b) choose(+b.dataset.i); });
+      document.addEventListener('click', e => { if (!e.target.closest('.search-wrap')) results.classList.add('hidden'); });
+
+      // ---- Geolocation --------------------------------------------------------
+      const locate = $('locate'), geoMsg = $('geo-msg');
+      function geoError(text) { geoMsg.textContent = text; geoMsg.classList.remove('hidden'); }
+      locate.addEventListener('click', () => {
+        geoMsg.classList.add('hidden');
+        if (!navigator.geolocation) return geoError('This browser does not support geolocation.');
+        if (!window.isSecureContext) return geoError('Location needs a secure (https) page.');
+        locate.classList.add('busy'); locate.disabled = true;
+        navigator.geolocation.getCurrentPosition(pos => {
+          locate.classList.remove('busy'); locate.disabled = false;
+          const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+          const near = nearestCity(lat, lng);
+          setPlace({ kind: 'gps', name: 'My location', lat, lng, tz: DEVICE_TZ,
+                     sub: (near ? `${Math.round(near.km)} km from ${near.city.name}, ${near.city.country}` : '') + (accuracy ? ` · ±${Math.round(accuracy)} m` : '') },
+                   { persist: false, pushUrl: false });
+          history.replaceState(null, '', location.pathname);
+        }, err => {
+          locate.classList.remove('busy'); locate.disabled = false;
+          geoError(err.code === 1 ? 'Location permission was denied. Search for a city instead.'
+                 : err.code === 2 ? 'Location unavailable right now.' : 'Location request timed out.');
+        }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 });
+      });
+
+      // ---- Date controls ------------------------------------------------------
+      function shift(days) {
+        const t = zoneMidnight(place.tz, view.y, view.m, view.d).valueOf() + (days * 24 + 12) * 3600000;
+        view = zoneParts(place.tz, new Date(t));
+        render();
+      }
+      $('prev').addEventListener('click', () => shift(-1));
+      $('next').addEventListener('click', () => shift(1));
+      $('today').addEventListener('click', () => { view = zoneParts(place.tz, new Date()); render(); });
+      dateInput.addEventListener('change', () => {
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateInput.value);
+        if (m) { view = { y: +m[1], m: +m[2], d: +m[3] }; render(); }
+      });
+
+      // ---- Startup: URL > saved city > Liverpool ------------------------------
+      function initialPlace() {
+        const u = new URL(location.href);
+        if (u.searchParams.has('lat') && u.searchParams.has('lng')) {
+          const c = coordsFrom(`${u.searchParams.get('lat')}, ${u.searchParams.get('lng')}`);
+          if (c) return coordsPlace(c.lat, c.lng);
+        }
+        if (u.searchParams.get('q')) {
+          const want = norm(u.searchParams.get('q')), cc = (u.searchParams.get('cc') || '').toUpperCase();
+          const hit = CITIES.find(c => c.key === want && (!cc || c.iso2 === cc)) || searchCities(u.searchParams.get('q'))[0];
+          if (hit) return cityPlace(hit);
+        }
+        try { const saved = JSON.parse(localStorage.getItem(STORE)); if (saved && saved.kind === 'city' && saved.tz) return saved; } catch (_) {}
+        const liv = CITIES.find(c => c.key === 'liverpool' && c.iso2 === 'GB') || CITIES[0];
+        return cityPlace(liv);
+      }
+      setPlace(initialPlace(), { persist: false, pushUrl: false });
+      setInterval(tick, 1000);
+      // Roll the view over at midnight if the page was left open on "today".
+      setInterval(() => { if (day && new Date() >= day.end && iso(view) === iso(zoneParts(place.tz, new Date(day.end - 1)))) { view = zoneParts(place.tz, new Date()); render(); } }, 60000);
+    })();
+  </script>
+</body>
+</html>

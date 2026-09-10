@@ -1,13 +1,13 @@
 {
   "tools": [
     {
-      "slug": "liverpool-sky",
-      "name": "Liverpool Sky",
-      "description": "Live sun and moon data for Liverpool: sunrise, sunset, solar noon, peak altitude, max UV index, moon phase, moonrise and moonset.",
+      "slug": "sky",
+      "name": "Sky Almanac",
+      "description": "Live sun and moon data for any major city or your current location: sunrise, sunset, solar noon, UV index, moon phase, moonrise and moonset.",
       "icon": "🌗",
       "tags": [
         "astronomy",
-        "liverpool",
+        "travel",
         "weather"
       ],
       "added": "2026-09-05"
