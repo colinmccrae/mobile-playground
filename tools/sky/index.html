@@ -332,7 +332,9 @@
         const moonT = A.getMoonTimes(start, LAT, LNG);
         const ill = A.getMoonIllumination(ref);
         const [phaseName, phaseEmoji] = phaseInfo(ill.phase);
-        const nextNew = A.nextMoonPhase(start, 0), nextFull = A.nextMoonPhase(start, 0.5);
+        // On today's page, count from now so a phase that already happened this morning isn't "next".
+        const now = new Date(), phaseFrom = now > start && now < end ? now : start;
+        const nextNew = A.nextMoonPhase(phaseFrom, 0), nextFull = A.nextMoonPhase(phaseFrom, 0.5);
         const moonDist = A.getMoonPosition(ref, LAT, LNG).distance;
 
         day = { start, end, sun };
