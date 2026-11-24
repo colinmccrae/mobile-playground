@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Map shaded by combined drive time from two places, showing the fairest places to meet in the middle, and nice towns there.">
+  <title>Meet Halfway · Mobile Playground</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="tool.css">
+</head>
+<body>
+  <div class="container">
+
+    <a class="back-link" href="../../">← All tools</a>
+
+    <header class="site-header">
+      <h1>🚗 Meet Halfway</h1>
+      <p>Where should two people driving from different places meet? Darker means less driving.</p>
+    </header>
+
+    <main>
+      <div class="pickers">
+        <div class="picker">
+          <label for="a-input" class="visually-hidden">First person drives from</label>
+          <div class="picker-row">
+            <span class="badge badge-a" aria-hidden="true">A</span>
+            <input id="a-input" type="search" autocomplete="off" autocapitalize="words" spellcheck="false"
+                   enterkeyhint="search" placeholder="Town, city or postcode"
+                   role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="a-list">
+            <button type="button" id="a-locate" class="btn-secondary icon-btn" aria-label="Use my location for A" title="Use my location">⌖</button>
+          </div>
+          <ul id="a-list" class="suggest hidden" role="listbox" aria-label="Suggestions for A"></ul>
+        </div>
+        <div class="picker">
+          <label for="b-input" class="visually-hidden">Second person drives from</label>
+          <div class="picker-row">
+            <span class="badge badge-b" aria-hidden="true">B</span>
+            <input id="b-input" type="search" autocomplete="off" autocapitalize="words" spellcheck="false"
+                   enterkeyhint="search" placeholder="Town, city or postcode"
+                   role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="b-list">
+            <button type="button" id="b-locate" class="btn-secondary icon-btn" aria-label="Use my location for B" title="Use my location">⌖</button>
+          </div>
+          <ul id="b-list" class="suggest hidden" role="listbox" aria-label="Suggestions for B"></ul>
+        </div>
+      </div>
+
+      <div class="seg" role="radiogroup" aria-label="Shade the map by">
+        <label><input type="radio" name="mode" value="total" checked><span>Combined</span></label>
+        <label><input type="radio" name="mode" value="fair"><span>Fairest</span></label>
+        <label><input type="radio" name="mode" value="split"><span>Who drives more</span></label>
+      </div>
+      <p id="mode-help" class="small muted help"></p>
+
+      <div class="map-wrap">
+        <div id="map" role="region" aria-label="Map of drive times"></div>
+        <div id="status" class="status hidden" aria-live="polite">
+          <span id="status-text"></span>
+          <span class="bar"><i id="bar"></i></span>
+        </div>
+      </div>
+
+      <div class="legend-row">
+        <div id="legend" class="legend" aria-label="Map key"></div>
+        <div class="seg seg-small" role="radiogroup" aria-label="Measure">
+          <label><input type="radio" name="measure" value="time" checked><span>Time</span></label>
+          <label><input type="radio" name="measure" value="dist"><span>Distance</span></label>
+        </div>
+      </div>
+
+      <div id="error" class="result error hidden" role="alert"></div>
+      <div id="summary" class="result hidden" aria-live="polite"></div>
+
+      <h2>Nice places to meet</h2>
+      <p id="places-status" class="small muted" aria-live="polite">Places appear once the map is ready.</p>
+      <ol id="places" class="places"></ol>
+
+      <details class="about small">
+        <summary>How this works</summary>
+        <p>About 1,100 points around the two places are routed by car with the free
+          <a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a> demo server, which uses
+          OpenStreetMap roads. Times assume free-flowing traffic (no rush hour, no roadworks) and OSRM's own
+          road speeds, so they tend to run a little longer than Google or Waze on motorways. Points with no
+          road nearby (sea, open moorland) are left unshaded. Tap anywhere on the map for exact times to that spot.</p>
+        <p>Nice places are towns, villages and parks that have a travel guide on
+          <a href="https://en.wikivoyage.org/" target="_blank" rel="noopener">Wikivoyage</a>, searched around the fairest part
+          of the map and ranked by the longer of the two drives. Places with fuller guides get a small head start
+          (up to 15 minutes). Place search uses <a href="https://nominatim.openstreetmap.org/" target="_blank" rel="noopener">Nominatim</a>.
+          Results are cached on this device so a repeat visit is instant.</p>
+      </details>
+    </main>
+
+    <footer class="site-footer">
+      <a href="../../">Mobile Playground</a> ·
+      <a href="https://github.com/colinmccrae/mobile-playground/tree/main/tools/meet-halfway">Source</a>
+    </footer>
+
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="cities.js"></script>
+  <script src="tool.js"></script>
+</body>
+</html>

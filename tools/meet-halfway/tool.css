@@ -1,0 +1,131 @@
+/* Meet Halfway: tool-specific styles. Shared look comes from ../../assets/style.css. */
+
+:root { --col-a: #2563eb; --col-b: #ea580c; }
+@media (prefers-color-scheme: dark) { :root { --col-a: #60a5fa; --col-b: #fb923c; } }
+
+.site-header { padding-bottom: 10px; }
+
+/* ---- Place pickers ---------------------------------------------------- */
+.pickers { display: grid; gap: 8px; grid-template-columns: 1fr; }
+@media (min-width: 640px) { .pickers { grid-template-columns: 1fr 1fr; } }
+.picker { position: relative; }
+.picker-row { display: flex; gap: 8px; align-items: center; }
+.picker-row input { flex: 1 1 auto; min-width: 0; }
+.badge {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 50%; font-weight: 700; color: #fff;
+}
+.badge-a { background: var(--col-a); }
+.badge-b { background: var(--col-b); }
+@media (prefers-color-scheme: dark) { .badge { color: #0b1220; } }
+.icon-btn { flex: 0 0 auto; width: var(--tap); padding: 0; font-size: 1.3rem; }
+
+.suggest {
+  position: absolute; left: 40px; right: 52px; top: calc(100% + 4px); z-index: 2000;
+  margin: 0; padding: 4px 0; list-style: none;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .18); max-height: 60vh; overflow-y: auto;
+}
+.suggest li {
+  display: flex; flex-direction: column; justify-content: center;
+  min-height: var(--tap); padding: 6px 12px; cursor: pointer; line-height: 1.25;
+}
+.suggest li.active, .suggest li:hover { background: var(--surface-2); }
+.suggest li.note { cursor: default; color: var(--muted); }
+
+/* ---- Segmented controls ----------------------------------------------- */
+.seg {
+  display: flex; margin-top: 12px; padding: 3px; gap: 3px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.seg label { flex: 1 1 0; margin: 0; font-weight: 600; position: relative; }
+.seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.seg span {
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  min-height: 38px; padding: 4px 6px; border-radius: 9px; cursor: pointer;
+  font-size: 0.9375rem; line-height: 1.15; color: var(--muted);
+}
+.seg input:checked + span { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, .15); }
+.seg input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 1px; }
+.seg-small { margin-top: 0; flex: 0 0 auto; }
+.seg-small span { min-height: 38px; padding: 4px 10px; font-size: 0.875rem; }
+.help { margin: 6px 2px 10px; min-height: 2.6em; }
+
+/* ---- Map --------------------------------------------------------------- */
+.map-wrap { position: relative; }
+#map {
+  position: relative; z-index: 0; isolation: isolate;
+  height: min(58vh, 560px); min-height: 320px;
+  border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+  background: var(--surface-2);
+}
+.leaflet-container { font: inherit; }
+/* Muted basemap: tiles faded over a neutral background so the shading stands out.
+   (A CSS filter would be nicer but leaves hairline seams between tiles in Chromium.) */
+#map.leaflet-container { background: #e9eaec; }
+
+@media (prefers-color-scheme: dark) { #map.leaflet-container { background: #15171b; } }
+.leaflet-popup-content { margin: 10px 12px; font-size: 0.9375rem; line-height: 1.4; }
+.leaflet-popup-content p { margin: 4px 0; }
+.leaflet-popup-content a { color: #2563eb; }
+.leaflet-control-attribution { font-size: 10px; }
+@media (prefers-color-scheme: dark) {
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface); color: var(--text); }
+  .leaflet-popup-content a { color: var(--accent); }
+  .leaflet-control-attribution { background: rgba(24, 27, 33, .8) !important; color: var(--muted); }
+  .leaflet-control-attribution a { color: var(--muted); }
+  .leaflet-bar a { background: var(--surface); color: var(--text); border-color: var(--border); }
+}
+.leaflet-bar a { width: 36px; height: 36px; line-height: 36px; }
+
+.status {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 1000;
+  display: flex; flex-direction: column; gap: 4px; align-items: stretch;
+  max-width: calc(100% - 100px); padding: 6px 12px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .15); font-size: 0.875rem; white-space: nowrap;
+}
+.status .bar { display: block; height: 3px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
+.status .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+
+.pin {
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; border: 2px solid #fff; color: #fff; font-weight: 700;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .45); font-family: var(--font);
+}
+.pin-a { background: #2563eb; width: 30px; height: 30px; font-size: 15px; }
+.pin-b { background: #ea580c; width: 30px; height: 30px; font-size: 15px; }
+.pin-star { background: #facc15; color: #422006; width: 30px; height: 30px; font-size: 17px; }
+.pin-place { background: #059669; width: 24px; height: 24px; font-size: 12px; }
+
+/* ---- Legend ------------------------------------------------------------ */
+.legend-row { display: flex; gap: 10px; align-items: flex-start; margin-top: 10px; }
+.legend { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 0.8125rem; color: var(--muted); }
+.legend .key { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.legend .sw { width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(127, 127, 127, .35); flex: 0 0 auto; }
+.legend .line { width: 18px; height: 0; border-top: 3px dashed var(--text); flex: 0 0 auto; }
+
+/* ---- Summary / places -------------------------------------------------- */
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: baseline; margin-right: 4px; }
+.dot-a { background: var(--col-a); }
+.dot-b { background: var(--col-b); }
+#summary p { margin: 2px 0; }
+
+.places { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.place {
+  display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: start;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px;
+}
+.place-num {
+  grid-row: span 3; display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; margin-top: 2px; border-radius: 50%; background: #059669; color: #fff; font-weight: 700; font-size: 0.875rem;
+}
+.place-name { font-weight: 600; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.place-desc { color: var(--muted); font-size: 0.875rem; }
+.place-times { font-size: 0.9375rem; display: flex; flex-wrap: wrap; gap: 2px 12px; }
+.place-actions { grid-column: 2; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.place-actions .btn, .place-actions button { min-height: 40px; padding: 6px 12px; font-size: 0.875rem; flex: 0 0 auto; }
+
+.about { margin-top: 20px; color: var(--muted); }
+.about summary { cursor: pointer; min-height: var(--tap); display: flex; align-items: center; font-weight: 600; }
+.about p { margin: 6px 0; }

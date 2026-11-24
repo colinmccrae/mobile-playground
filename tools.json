@@ -1,6 +1,17 @@
 {
   "tools": [
     {
+      "slug": "meet-halfway",
+      "name": "Meet Halfway",
+      "description": "Map shaded by combined drive time from two places, with the fairest spot and nice towns to meet in between.",
+      "icon": "🚗",
+      "tags": [
+        "travel",
+        "maps"
+      ],
+      "added": "2026-11-24"
+    },
+    {
       "slug": "sky",
       "name": "Sky Almanac",
       "description": "Live sun and moon data for any major city or your current location: sunrise, sunset, solar noon, UV index, moon phase, moonrise and moonset.",
